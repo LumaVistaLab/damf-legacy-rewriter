@@ -133,7 +133,7 @@ channels:
     ID: 11
 ```
 
-Output `.atmos.metadata` object IDs start at zero:
+Output `.atmos.metadata` object IDs start at zero when emitted:
 
 ```yaml
 events:
@@ -288,7 +288,7 @@ events:
     decorr: true
 ```
 
-The off-field coordinate `[-2001, 2001, 0]` is inherited only when present in source DAMF metadata. The converter does not synthesize sentinel positions.
+The off-field coordinate `[-2001, 2001, 0]` is preserved only when present in source DAMF metadata. The converter does not synthesize sentinel positions.
 
 ### Source Event Without Size
 
@@ -317,7 +317,7 @@ Without `size`, the converter does not write `size3D` or `decorr`.
 
 ### Source Automation Events Without IDs
 
-Source events that omit `ID` or `objectID` inherit the most recent explicit source event ID.
+Source events that omit `ID` or `objectID` are evaluated with the most recent explicit source event ID, but the output event remains ID-less.
 
 Source:
 
@@ -337,12 +337,11 @@ events:
   - objectID: 0
     samplePos: 100
     pos: [0.1, 0.2, 0]
-  - objectID: 0
-    samplePos: 200
+  - samplePos: 200
     pos: [0.2, 0.3, 0]
 ```
 
-If the inherited source ID belongs to a bed or any other non-object ID, the inherited event is filtered out.
+The inherited source ID is used only for object filtering and mapping. If the inherited source ID belongs to a bed or any other non-object ID, the inherited event is filtered out.
 
 ## Invalid Cases
 
@@ -417,7 +416,7 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 - `.atmos` preserves optional presentation fields listed above when present.
 - `.atmos` bed IDs are compact and zero-based in output bed order.
 - `.atmos` object IDs start at `10` and increase contiguously.
-- `.atmos.metadata` uses object-only zero-based `objectID`.
+- `.atmos.metadata` uses object-only zero-based `objectID` when an event ID is emitted.
 - Direct 7.1.2 bed is supported.
 - 9.1 is not specially converted.
 - Probe DAMFs are not part of the final project.

@@ -166,7 +166,7 @@ sampleRate: 48000
 
 Only source object events are retained. Bed events are filtered out.
 
-The output event ID field is always `objectID`. It starts from zero in object namespace only, independent of global `.atmos` channel IDs.
+When an output event ID is emitted, the field is `objectID`. It starts from zero in object namespace only, independent of global `.atmos` channel IDs. Source events that omit `ID` or `objectID` keep that omission in the output.
 
 Event fields are emitted in this order when applicable:
 
@@ -181,15 +181,15 @@ dialog, music, screenFactor, depthFactor
 Rules:
 
 - Event fields may be omitted.
-- Source events without `ID` or `objectID` inherit the most recent explicit source event ID. They are retained when that inherited ID maps to a source object, and filtered when it maps to a bed/non-object ID.
-- Normal event fields are inherited only when the source event contains them.
+- Source events without `ID` or `objectID` inherit the most recent explicit source event ID only for filtering and object mapping. They are retained when that inherited ID maps to a source object, filtered when it maps to a bed/non-object ID, and written without `objectID`.
+- Normal event fields are emitted only when the source event contains them.
 - Boolean fields `active`, `snap`, `elevation`, `size3D`, and `decorr` are normalized to `false` or `true`.
-- `size` is inherited if present.
+- `size` is emitted if present.
 - `size3D` is normalized/calculated with the same legacy compatibility rules, but is not emitted by default.
-- With `--emit-size3d`, if `size` exists and `size3D` exists, inherit normalized `size3D`.
+- With `--emit-size3d`, if `size` exists and `size3D` exists, emit normalized `size3D`.
 - With `--emit-size3d`, if `size` exists and `size3D` is absent, write `size3D: true`.
 - If `size` is absent, do not write `size3D`, even with `--emit-size3d`.
-- `decorr` is inherited only when both `size` and `decorr` exist.
+- `decorr` is emitted only when both `size` and `decorr` exist.
 - `dialog`, `music`, and `importance` are preserved when present.
 - If there are no object events, the output is `events: []`.
 

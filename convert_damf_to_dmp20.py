@@ -473,6 +473,7 @@ def write_metadata(source: Path, dest: Path, plan: Plan, emit_size3d: bool = Fal
     current_source_id: int | None = None
     for event in data.get("events", []):
         old_id = event.get("ID", event.get("objectID"))
+        explicit_id = old_id is not None
         if old_id is not None:
             current_source_id = int(old_id)
         if current_source_id is None:
@@ -481,7 +482,9 @@ def write_metadata(source: Path, dest: Path, plan: Plan, emit_size3d: bool = Fal
         if source_id not in source_id_to_object_id:
             continue
         mapped = dict(event)
-        ordered = {"objectID": source_id_to_object_id[source_id]}
+        ordered = {}
+        if explicit_id:
+            ordered["objectID"] = source_id_to_object_id[source_id]
         for key in METADATA_EVENT_OPTIONAL_SOURCE_FIELDS:
             if key == "objectID":
                 continue

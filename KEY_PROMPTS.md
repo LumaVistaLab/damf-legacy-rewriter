@@ -41,10 +41,10 @@ Discarded `.atmos` fields:
 - top-level `sampleRate: 48000`
 - only object events retained
 - bed events filtered out
-- output event IDs use zero-based object-only `objectID`
+- emitted output event IDs use zero-based object-only `objectID`
 - event fields may be omitted
-- source events without `ID` or `objectID` inherit the most recent explicit source event ID before object filtering
-- object event fields are inherited only when present, except legacy `size3D` handling tied to `size`
+- source events without `ID` or `objectID` inherit the most recent explicit source event ID before object filtering, but remain ID-less in output
+- object event fields are emitted only when present, except legacy `size3D` handling tied to `size`
 
 Metadata event field order:
 
@@ -65,12 +65,12 @@ Boolean normalization:
 
 Size-related rules:
 
-- `size` is inherited when present
+- `size` is emitted when present
 - `size3D` is normalized/calculated with the same legacy compatibility rules, but is not emitted by default
-- with `--emit-size3d`, if `size` and `size3D` are both present, inherit normalized `size3D`
+- with `--emit-size3d`, if `size` and `size3D` are both present, emit normalized `size3D`
 - with `--emit-size3d`, if `size` is present but `size3D` is absent, write `size3D: true`
 - if `size` is absent, do not write `size3D`, even with `--emit-size3d`
-- `decorr` is inherited only when both `size` and `decorr` exist
+- `decorr` is emitted only when both `size` and `decorr` exist
 
 `importance`, `dialog`, and `music` are preserved when present.
 
