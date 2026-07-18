@@ -412,11 +412,14 @@ def write_metadata(source: Path, dest: Path, plan: Plan) -> None:
     source_id_to_object_id = {
         source_id: idx for idx, source_id in enumerate(plan.source_object_ids)
     }
+    current_source_id: int | None = None
     for event in data.get("events", []):
         old_id = event.get("ID", event.get("objectID"))
-        if old_id is None:
+        if old_id is not None:
+            current_source_id = int(old_id)
+        if current_source_id is None:
             continue
-        source_id = int(old_id)
+        source_id = current_source_id
         if source_id not in source_id_to_object_id:
             continue
         mapped = dict(event)

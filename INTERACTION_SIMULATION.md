@@ -299,6 +299,35 @@ events:
 
 Without `size`, the converter does not write `size3D` or `decorr`.
 
+### Source Automation Events Without IDs
+
+Source events that omit `ID` or `objectID` inherit the most recent explicit source event ID.
+
+Source:
+
+```yaml
+events:
+  - objectID: 10
+    samplePos: 100
+    pos: [0.1, 0.2, 0]
+  - samplePos: 200
+    pos: [0.2, 0.3, 0]
+```
+
+Output:
+
+```yaml
+events:
+  - objectID: 0
+    samplePos: 100
+    pos: [0.1, 0.2, 0]
+  - objectID: 0
+    samplePos: 200
+    pos: [0.2, 0.3, 0]
+```
+
+If the inherited source ID belongs to a bed or any other non-object ID, the inherited event is filtered out.
+
 ## Invalid Cases
 
 ### Unsupported Bed Layout

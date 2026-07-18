@@ -173,6 +173,7 @@ dialog, music, screenFactor, depthFactor
 Rules:
 
 - Event fields may be omitted.
+- Source events without `ID` or `objectID` inherit the most recent explicit source event ID. They are retained when that inherited ID maps to a source object, and filtered when it maps to a bed/non-object ID.
 - Normal event fields are inherited only when the source event contains them.
 - Boolean fields `active`, `snap`, `elevation`, `size3D`, and `decorr` are normalized to `false` or `true`.
 - `size` is inherited if present.

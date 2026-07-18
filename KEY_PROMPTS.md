@@ -45,6 +45,7 @@ Discarded `.atmos` fields:
 - bed events filtered out
 - output event IDs use zero-based object-only `objectID`
 - event fields may be omitted
+- source events without `ID` or `objectID` inherit the most recent explicit source event ID before object filtering
 - object event fields are inherited only when present, except `size3D` handling tied to `size`
 
 Metadata event field order:
