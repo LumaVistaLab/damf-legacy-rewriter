@@ -26,7 +26,8 @@ The accepted target profile is empirical, not an official Dolby DAMF specificati
 - `creationToolVersion: Only Tested DAMF v0.5.0 & v0.5.1 to v0.3`
 - bed channel names are `BED <label>`
 - object channel names are `OBJ 1`, `OBJ 2`, and so on
-- channel IDs are global and contiguous, bed first then objects
+- bed channel IDs are compact and zero-based in output bed order
+- object channel IDs always start at `10` and increase contiguously
 - `.atmos` channel entries use `ID`, not `objectID`
 
 Discarded `.atmos` fields:
@@ -125,6 +126,8 @@ CAF audio does not contain empty tracks for unused bed ID slots. It is packed in
 Output CAF channel order is output bed channels followed by output objects.
 
 Multiple beds contributing the same output label are summed directly. The converter does not apply gain management or downmix rules. Production material must avoid overload. The converter raises an error if summed samples exceed 24-bit integer range.
+
+When the required output channel order is exactly the source CAF order, the converter reuses the source CAF through a hard link and falls back to copying if linking is unavailable. Audio is rewritten only when the output requires channel merging, channel dropping, channel reordering, or a CAF header change.
 
 The converter preserves `offset` and does not time-shift CAF audio.
 

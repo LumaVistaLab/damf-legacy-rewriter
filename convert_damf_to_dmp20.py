@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import struct
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,7 @@ TRADITIONAL_5_1_BACK = ["L", "R", "C", "LFE", "Lrs", "Rrs"]
 STEREO = ["L", "R"]
 BED_LAYOUT_7_1_2 = [*TRADITIONAL_7_1, "Lts", "Rts"]
 INPUT_BED_SLOT_COUNT = 10
+OUTPUT_OBJECT_ID_BASE = 10
 CANONICAL_BED_SLOT_BY_LABEL = {label: index for index, label in enumerate(BED_LAYOUT_7_1_2)}
 SUPPORTED_BED_LAYOUTS = {
     frozenset(STEREO): "2.0",
@@ -299,11 +301,48 @@ def select_audio_sources(
     raise ValueError(f"source audio indices outside CAF channel count: {bad[:8]}")
 
 
-def write_audio(source: Path, dest: Path, plan: Plan, block_frames: int = 65536) -> int:
+def output_channel_count(plan: Plan) -> int:
+    return len(plan.bed_labels) + len(plan.source_object_ids)
+
+
+def can_reuse_audio(
+    plan: Plan,
+    layout: dict,
+    bed_sources: list[list[int]],
+    source_object_audio_indices: list[int],
+) -> bool:
+    indices = flatten_audio_indices(bed_sources, source_object_audio_indices)
+    channels = output_channel_count(plan)
+    return (
+        channels == layout["channels"]
+        and layout["bytes_per_packet"] == channels * 3
+        and indices == list(range(layout["channels"]))
+    )
+
+
+def reuse_audio_file(source: Path, dest: Path) -> str:
+    if source.resolve() == dest.resolve():
+        return "reused-source"
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    tmp.unlink(missing_ok=True)
+    try:
+        os.link(source, tmp)
+        method = "reused-hardlink"
+    except OSError:
+        shutil.copy2(source, tmp)
+        method = "reused-copy"
+    os.replace(tmp, dest)
+    return method
+
+
+def write_audio(source: Path, dest: Path, plan: Plan, block_frames: int = 65536) -> tuple[int, str]:
     layout = read_caf_layout(source)
     bed_sources, source_object_audio_indices = select_audio_sources(plan, layout["channels"])
     frames = layout["data_size"] // layout["bytes_per_packet"]
-    output_channels = len(plan.bed_labels) + len(plan.source_object_ids)
+    if can_reuse_audio(plan, layout, bed_sources, source_object_audio_indices):
+        return frames, reuse_audio_file(source, dest)
+
+    output_channels = output_channel_count(plan)
     output_bpp = output_channels * 3
     desc = bytearray(layout["desc"])
     struct.pack_into(">IIIII", desc, 12, layout["flags"], output_bpp, 1, output_channels, layout["bits"])
@@ -339,7 +378,7 @@ def write_audio(source: Path, dest: Path, plan: Plan, block_frames: int = 65536)
             out.write(i32_to_int24le(output))
             remaining -= take
     os.replace(tmp, dest)
-    return frames
+    return frames, "rewritten"
 
 
 def yaml_scalar(value) -> str:
@@ -417,9 +456,8 @@ def write_atmos(dest: Path, presentation: dict, plan: Plan) -> None:
     lines.append("    channels:")
     for idx, label in enumerate(plan.bed_labels):
         lines.extend([f"      - name: BED {label}", f"        bed: {label}", f"        ID: {idx}"])
-    atmos_object_id_base = len(plan.bed_labels)
     for name_idx, _ in enumerate(plan.source_objects, start=1):
-        object_id = atmos_object_id_base + name_idx - 1
+        object_id = OUTPUT_OBJECT_ID_BASE + name_idx - 1
         lines.extend([f"      - name: OBJ {name_idx}", f"        ID: {object_id}"])
     dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -499,14 +537,15 @@ def main() -> None:
     args.dest_dir.mkdir(parents=True, exist_ok=True)
 
     presentation, plan = build_plan(source_atmos)
-    frames = write_audio(source_audio, dest_audio, plan)
+    frames, audio_action = write_audio(source_audio, dest_audio, plan)
     write_atmos(dest_atmos, presentation, plan)
     write_metadata(source_metadata, dest_metadata, plan, emit_size3d=args.emit_size3d)
 
     print(f"bed_channels={len(plan.bed_labels)} {','.join(plan.bed_labels)}")
     print(f"source_objects={len(plan.source_objects)}")
-    print(f"output_channels={len(plan.bed_labels) + len(plan.source_objects)}")
+    print(f"output_channels={output_channel_count(plan)}")
     print(f"frames={frames}")
+    print(f"audio={audio_action}")
     print(f"wrote={dest_atmos}")
     print(f"wrote={dest_audio}")
     print(f"wrote={dest_metadata}")

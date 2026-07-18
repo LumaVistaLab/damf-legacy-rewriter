@@ -50,7 +50,7 @@ Input files must be a matching DAMF triplet:
 - `<name>.atmos.audio`
 - `<name>.atmos.metadata`
 
-The input CAF must be 24-bit little-endian LPCM. The converter rewrites the CAF channel count and channel order while preserving the audio data timing.
+The input CAF must be 24-bit little-endian LPCM. The converter rewrites the CAF only when the output requires channel merging, channel dropping, channel reordering, or a CAF header change. When the required output channel order is byte-for-byte identical to the source CAF channel order, the converter reuses the source CAF through a hard link and falls back to copying if linking is unavailable.
 
 ## Usage
 
@@ -77,7 +77,7 @@ and writes:
 .\output\movie.atmos.metadata
 ```
 
-The script always rewrites audio. There is no skip-audio mode.
+There is no skip-audio mode. The converter always validates the CAF, then either reuses it when the mapping is identical or rewrites it when the mapping changes.
 
 ## Supported Input Beds
 
@@ -153,7 +153,8 @@ Output channel entries are regenerated:
 - Bed channels are named `BED <label>` and use `bed: <label>`.
 - Object channels are named `OBJ 1`, `OBJ 2`, and so on.
 - `.atmos` uses `ID`, not `objectID`.
-- Output IDs are global and contiguous: bed channels first, then objects.
+- Bed channel IDs are compact and zero-based in output bed order.
+- Object channel IDs always start at `10` and increase contiguously, independent of the number of output bed channels.
 
 ## Output `.atmos.metadata`
 
@@ -201,6 +202,8 @@ output bed channels, then output objects
 ```
 
 Multiple input beds that contribute the same output label are summed directly. The producer must ensure the source does not overload. The converter raises an error if mixed samples exceed 24-bit integer range.
+
+If the selected output order exactly matches the source CAF order, the converter reuses the input CAF instead of rewriting audio samples. Reuse is allowed only when there is no merge, drop, reorder, or channel-count/header change.
 
 ## Verification Status
 

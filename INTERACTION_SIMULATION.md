@@ -20,12 +20,14 @@ bed_channels=<count> <comma-separated output bed labels>
 source_objects=<count>
 output_channels=<bed count + object count>
 frames=<CAF frame count>
+audio=<reused-hardlink|reused-copy|rewritten>
 wrote=<dest>\movie.atmos
 wrote=<dest>\movie.atmos.audio
 wrote=<dest>\movie.atmos.metadata
 ```
 
 The exact `frames` value depends on the input CAF.
+`audio=reused-hardlink` means the output CAF is linked to the source CAF because the channel mapping is identical. `audio=reused-copy` is the same byte-for-byte reuse path when hard linking is unavailable. `audio=rewritten` means the CAF was regenerated because channel merging, dropping, reordering, or a header change was required.
 
 ## Optional Presentation Passthrough
 
@@ -61,6 +63,7 @@ bed_channels=2 L,R
 source_objects=0
 output_channels=2
 frames=<input frames>
+audio=<reused-hardlink|reused-copy>
 wrote=.\output\movie.atmos
 wrote=.\output\movie.atmos.audio
 wrote=.\output\movie.atmos.metadata
@@ -108,12 +111,13 @@ bed_channels=2 L,R
 source_objects=2
 output_channels=4
 frames=<input frames>
+audio=<reused-hardlink|reused-copy>
 wrote=.\output\movie.atmos
 wrote=.\output\movie.atmos.audio
 wrote=.\output\movie.atmos.metadata
 ```
 
-Output `.atmos` object IDs continue after the bed:
+Output `.atmos` object IDs start at `10`, even when the output bed has fewer than 10 channels:
 
 ```yaml
 channels:
@@ -124,9 +128,9 @@ channels:
     bed: R
     ID: 1
   - name: OBJ 1
-    ID: 2
+    ID: 10
   - name: OBJ 2
-    ID: 3
+    ID: 11
 ```
 
 Output `.atmos.metadata` object IDs start at zero:
@@ -411,7 +415,8 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 - `.atmos` version is fixed `0.3`.
 - `.atmos` presentation `simplified` is fixed `false`.
 - `.atmos` preserves optional presentation fields listed above when present.
-- `.atmos` uses global contiguous `ID`.
+- `.atmos` bed IDs are compact and zero-based in output bed order.
+- `.atmos` object IDs start at `10` and increase contiguously.
 - `.atmos.metadata` uses object-only zero-based `objectID`.
 - Direct 7.1.2 bed is supported.
 - 9.1 is not specially converted.
