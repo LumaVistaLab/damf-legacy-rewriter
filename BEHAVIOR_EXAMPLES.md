@@ -1,17 +1,16 @@
-# Interaction Simulation
+# Behavior Examples
 
-This file documents expected user-facing behavior for `convert_damf_to_dmp20.py`. It is not a generated test matrix and does not contain real DAMF payloads.
+This file documents expected user-facing behavior for `damf_legacy_rewriter.py`. It is not a generated test matrix and does not contain real DAMF payloads.
 
-Use it to review CLI messages, accepted input shapes, rejected input shapes, and output ID mapping without regenerating probe files.
+Use it to review CLI messages, accepted input shapes, rejected input shapes, output ID mapping, and metadata inheritance behavior without regenerating probe files.
 
 ## Command Shape
 
 ```powershell
-python convert_damf_to_dmp20.py --source-dir .\input --dest-dir .\output --name movie
+python damf_legacy_rewriter.py --source-dir .\input --dest-dir .\output --name movie
 ```
 
-By default, output metadata omits `size3D`. Add `--emit-size3d` to write the
-legacy `size3D` mapping.
+By default, output metadata omits `size3D`. Add `--emit-size3d` only when deliberately testing that field.
 
 Successful output has this shape:
 
@@ -26,14 +25,20 @@ wrote=<dest>\movie.atmos.audio
 wrote=<dest>\movie.atmos.metadata
 ```
 
-The exact `frames` value depends on the input CAF.
 `audio=reused-hardlink` means the output CAF is linked to the source CAF because the channel mapping is identical. `audio=reused-copy` is the same byte-for-byte reuse path when hard linking is unavailable. `audio=rewritten` means the CAF was regenerated because channel merging, dropping, reordering, or a header change was required.
 
-## Optional Presentation Passthrough
+## Presentation Defaults And Passthrough
+
+If source `offset` is missing, the output writes:
+
+```yaml
+offset: 0
+```
 
 When present in the source presentation, the converter preserves:
 
 ```text
+ffoa, surroundTrim_7_1, surroundTrim_5_1, fps,
 scBedConfiguration, scNumberOfElements, dialnorm/dialNorm,
 roomWidth, roomLength, roomHeight, screenSizeRatio
 ```
@@ -133,7 +138,7 @@ channels:
     ID: 11
 ```
 
-Output `.atmos.metadata` object IDs match the regenerated `.atmos` object IDs when emitted:
+Explicit output metadata object IDs match the regenerated `.atmos` object IDs:
 
 ```yaml
 events:
@@ -157,10 +162,10 @@ L=0, R=1, C=2, LFE=3, Lss=4, Rss=5
 
 Aliases `Ls/Rs` are accepted and normalize to `Lss/Rss`.
 
-Expected output labels:
+Expected output labels and bed IDs:
 
 ```text
-bed_channels=6 L,R,C,LFE,Lss,Rss
+L=0, R=1, C=2, LFE=3, Lss=4, Rss=5
 ```
 
 ### 5.1 Back Bed
@@ -173,17 +178,17 @@ L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
 
 Aliases `Lb/Rb` are accepted and normalize to `Lrs/Rrs`.
 
-Expected output labels:
+Expected output labels and bed IDs:
 
 ```text
-bed_channels=6 L,R,C,LFE,Lrs,Rrs
+L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
 ```
 
-Important: `Lrs/Rrs` still use reserved 7.1.2 slots `6/7`. Packed `4/5` IDs are rejected even though the CAF audio has only six bed channels.
+Important: `Lrs/Rrs` use reserved 7.1.2 slots `6/7`. Packed `4/5` IDs are rejected even though the CAF audio has only six bed channels.
 
 ### 7.1 Bed
 
-Canonical source IDs:
+Canonical source IDs and output bed IDs:
 
 ```text
 L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7
@@ -197,7 +202,7 @@ bed_channels=8 L,R,C,LFE,Lss,Rss,Lrs,Rrs
 
 ### 7.1.2 Bed
 
-Canonical source IDs:
+Canonical source IDs and output bed IDs:
 
 ```text
 L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7, Lts=8, Rts=9
@@ -211,29 +216,37 @@ Expected output labels:
 bed_channels=10 L,R,C,LFE,Lss,Rss,Lrs,Rrs,Lts,Rts
 ```
 
-The converter keeps `Lts/Rts` as direct bed channels. It does not convert them into static objects.
+The converter keeps `Lts/Rts` as bed channels. It does not convert them into static objects.
 
 ### Multiple Beds
 
 Each input bed reserves a 10-ID block. The second bed starts at ID 10, the third at ID 20, and so on.
 
-Example: two 5.1 back beds:
+Most explanatory example: one 5.1 side bed plus one 5.1 back bed.
 
 ```text
-bed 0: L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
+bed 0: L=0,  R=1,  C=2,  LFE=3,  Lss=4,  Rss=5
 bed 1: L=10, R=11, C=12, LFE=13, Lrs=16, Rrs=17
 first object ID: 20
+```
+
+The selected output bed layout is 7.1 because the combined beds cover both side and rear surrounds:
+
+```text
+output bed labels: L,R,C,LFE,Lss,Rss,Lrs,Rrs
+output bed IDs:    0,1,2,3,4,5,6,7
 ```
 
 CAF audio remains packed:
 
 ```text
-bed 0 listed channels, bed 1 listed channels, objects
+bed 0 six channels, bed 1 six channels, objects
+L,R,C,LFE,Lss,Rss,L,R,C,LFE,Lrs,Rrs,OBJ...
 ```
 
 There are no silent placeholder tracks for unused reserved slots.
 
-When multiple beds contribute the same output label, their audio is summed directly.
+The shared labels `L/R/C/LFE` are summed from both beds. `Lss/Rss` come only from bed 0. `Lrs/Rrs` come only from bed 1. If any summed channel exceeds 24-bit range, it is clipped.
 
 ## Metadata Event Examples
 
@@ -261,9 +274,9 @@ events:
     size: 0.2
 ```
 
-### Source Event With Size, Size3D, And Decorr
+### Source Event With Size3D
 
-Source:
+Default output omits `size3D`:
 
 ```yaml
 events:
@@ -272,7 +285,21 @@ events:
     active: false
     pos: [-2001, 2001, 0]
     size: 0.2
-    size3D: 0
+    decorr: true
+```
+
+With `--emit-size3d`, the converter emits normalized `size3D`, but this mode currently breaks object positioning in DMPS v2.0 testing.
+
+### Source Event With Decorr But No Size
+
+Source:
+
+```yaml
+events:
+  - objectID: 10
+    samplePos: 0
+    active: true
+    pos: [0.5, 0.5, 0]
     decorr: 1
 ```
 
@@ -282,40 +309,14 @@ Output:
 events:
   - objectID: 10
     samplePos: 0
-    active: false
-    pos: [-2001, 2001, 0]
-    size: 0.2
-    decorr: true
-```
-
-The off-field coordinate `[-2001, 2001, 0]` is preserved only when present in source DAMF metadata. The converter does not synthesize sentinel positions.
-
-### Source Event Without Size
-
-Source:
-
-```yaml
-events:
-  - objectID: 10
-    samplePos: 0
     active: true
     pos: [0.5, 0.5, 0]
     decorr: true
 ```
 
-Output:
+`decorr` is preserved whenever present after boolean normalization.
 
-```yaml
-events:
-  - objectID: 10
-    samplePos: 0
-    active: true
-    pos: [0.5, 0.5, 0]
-```
-
-Without `size`, the converter does not write `size3D` or `decorr`.
-
-### Source Automation Events Without IDs
+### ObjectID And SamplePos Inheritance
 
 Source events that omit `ID` or `objectID` are evaluated with the most recent explicit source event ID, but the output event remains ID-less.
 
@@ -328,6 +329,7 @@ events:
     pos: [0.1, 0.2, 0]
   - samplePos: 200
     pos: [0.2, 0.3, 0]
+  - pos: [0.3, 0.4, 0]
 ```
 
 Output:
@@ -339,9 +341,10 @@ events:
     pos: [0.1, 0.2, 0]
   - samplePos: 200
     pos: [0.2, 0.3, 0]
+  - pos: [0.3, 0.4, 0]
 ```
 
-The inherited source ID is used only for object filtering and mapping. If the inherited source ID belongs to a bed or any other non-object ID, the inherited event is filtered out.
+The inherited source ID is used only for object filtering and output object mapping. Omitted `samplePos` remains omitted so the metadata timeline keeps the same inheritance behavior as the source.
 
 ## Invalid Cases
 
@@ -358,6 +361,8 @@ Expected failure:
 ```text
 ValueError: unsupported bed layout in bedInstances[0]: L,R,C,LFE,Lss,Rss,Lrs,Rrs,Lw,Rw; expected exactly 2.0, 5.1 side, 5.1 back, 7.1, or 7.1.2
 ```
+
+DMPS v2.0 UI exposes `Lw/Rw`, but 9.1 input is not currently supported because it has not been tested.
 
 ### Duplicate Alias Collision
 
@@ -413,10 +418,11 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 
 - `.atmos` version is fixed `0.3`.
 - `.atmos` presentation `simplified` is fixed `false`.
-- `.atmos` preserves optional presentation fields listed above when present.
-- `.atmos` bed IDs are compact and zero-based in output bed order.
+- Missing presentation `offset` writes `offset: 0`.
+- Supported bed inputs are exactly 7.1.2, 7.1, 5.1 side, 5.1 back, 2.0, and any combination of those layouts.
+- Output bed IDs use canonical 7.1.2 slot IDs.
 - `.atmos` object IDs start at `10` and increase contiguously.
-- `.atmos.metadata` uses the same output object IDs as `.atmos` when an event ID is emitted.
-- Direct 7.1.2 bed is supported.
-- 9.1 is not specially converted.
+- `.atmos.metadata` keeps object-event inheritance shape for `objectID` and `samplePos`.
+- `size3D` is omitted by default because enabling it currently breaks object positioning.
+- 9.1 is visible in the DMPS v2.0 UI but is not currently converted.
 - Probe DAMFs are not part of the final project.

@@ -44,9 +44,6 @@ PRESENTATION_REQUIRED_FIXED_VALUES = [
     ("creationTool", "DAMF Legacy Rewriter for DMPS v2.0 by LumaVista"),
     ("creationToolVersion", "Only Tested DAMF v0.5.0 & v0.5.1 to v0.3"),
 ]
-PRESENTATION_REQUIRED_SOURCE_FIELDS = [
-    "offset",
-]
 PRESENTATION_REQUIRED_OUTPUT_FIELDS = [
     "metadata",
     "audio",
@@ -174,9 +171,7 @@ def int24le_to_i32(block: bytes, channels: int) -> np.ndarray:
 
 
 def i32_to_int24le(samples: np.ndarray) -> bytes:
-    if ((samples < INT24_MIN) | (samples > INT24_MAX)).any():
-        raise ValueError("mixed audio exceeds 24-bit integer range")
-    packed = samples.astype(np.int32)
+    packed = np.clip(samples, INT24_MIN, INT24_MAX).astype(np.int32)
     unsigned = np.where(packed < 0, packed + 0x1000000, packed).astype(np.uint32)
     out = np.empty((packed.shape[0], packed.shape[1], 3), dtype=np.uint8)
     out[:, :, 0] = unsigned & 0xFF
@@ -403,12 +398,6 @@ def metadata_bool(value, field: str) -> bool:
     raise ValueError(f"metadata boolean field {field} must be 0/1 or false/true, got {value!r}")
 
 
-def require_field(data: dict, field: str, context: str):
-    if field not in data:
-        raise ValueError(f"missing required {context} field: {field}")
-    return data[field]
-
-
 def presentation_optional_fields(presentation: dict):
     for key in PRESENTATION_OPTIONAL_SOURCE_FIELDS:
         if key in presentation:
@@ -437,9 +426,6 @@ def write_atmos(dest: Path, presentation: dict, plan: Plan) -> None:
     lines = [f"{key}: {yaml_scalar(value)}" for key, value in ATMOS_TOP_LEVEL_VALUES]
     lines.append("presentations:")
     lines.append(f"  - type: {yaml_scalar(fixed_values['type'])}")
-    source_values = {
-        key: require_field(presentation, key, "presentation") for key in PRESENTATION_REQUIRED_SOURCE_FIELDS
-    }
     lines.append("    simplified: false")
     output_values = {
         "metadata": f"{dest.name}.metadata",
@@ -447,15 +433,16 @@ def write_atmos(dest: Path, presentation: dict, plan: Plan) -> None:
     }
     for key in PRESENTATION_REQUIRED_OUTPUT_FIELDS:
         lines.append(f"    {key}: {output_values[key]}")
-    lines.append(f"    offset: {yaml_scalar(source_values['offset'])}")
+    lines.append(f"    offset: {yaml_scalar(presentation.get('offset', 0))}")
     for key, value in presentation_optional_fields(presentation):
         lines.append(f"    {key}: {yaml_scalar(value)}")
     for key, value in PRESENTATION_REQUIRED_FIXED_VALUES:
         if key != "type":
             lines.append(f"    {key}: {yaml_scalar(value)}")
     lines.append("    channels:")
-    for idx, label in enumerate(plan.bed_labels):
-        lines.extend([f"      - name: BED {label}", f"        bed: {label}", f"        ID: {idx}"])
+    for label in plan.bed_labels:
+        bed_id = CANONICAL_BED_SLOT_BY_LABEL[label]
+        lines.extend([f"      - name: BED {label}", f"        bed: {label}", f"        ID: {bed_id}"])
     for name_idx, _ in enumerate(plan.source_objects, start=1):
         object_id = OUTPUT_OBJECT_ID_BASE + name_idx - 1
         lines.extend([f"      - name: OBJ {name_idx}", f"        ID: {object_id}"])
@@ -501,7 +488,7 @@ def write_metadata(source: Path, dest: Path, plan: Plan, emit_size3d: bool = Fal
                 if emit_size3d:
                     ordered[key] = size3d
             elif key == "decorr":
-                if "size" in mapped and "decorr" in mapped:
+                if "decorr" in mapped:
                     ordered[key] = metadata_bool(mapped[key], key)
             elif key in METADATA_BOOLEAN_FIELDS and key in mapped:
                 ordered[key] = metadata_bool(mapped[key], key)
@@ -527,7 +514,7 @@ def main() -> None:
     parser.add_argument(
         "--emit-size3d",
         action="store_true",
-        help="Write size3D metadata fields using the legacy compatibility mapping.",
+        help="Write size3D metadata fields. This is disabled by default because it can break object positioning in DMPS v2.0.",
     )
     args = parser.parse_args()
 
