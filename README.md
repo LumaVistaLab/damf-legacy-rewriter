@@ -8,8 +8,29 @@ The final minimal project is intentionally only these files:
 - `README.md`
 - `INTERACTION_SIMULATION.md`
 - `KEY_PROMPTS.md`
+- `demo_screenshots/`
 
-All probes, generated DAMFs, archived experiments, static-analysis helpers, and sample media are intentionally excluded from the final working tree.
+All probes, generated DAMFs, archived experiments, static-analysis helpers, and sample media are intentionally excluded from the final working tree. The demo screenshots are retained only as import-behavior evidence.
+
+## Demo Screenshots
+
+These screenshots show manual Dolby Media Producer Suite v2.0 import behavior for an original modern DAMF v0.5.1 input and for the rewritten DAMF v0.3 output.
+
+### Original DAMF v0.5.1 Import Failure
+
+![Original DAMF v0.5.1 import selection](demo_screenshots/import_original_damf_v0.5.1/import_original_damf_v0.5.1.png)
+
+![Original DAMF v0.5.1 import error](demo_screenshots/import_original_damf_v0.5.1/error_invalid_damf_selected.png)
+
+### Rewritten DAMF v0.3 Import
+
+![Rewritten DAMF v0.3 Dolby Atmos file details](demo_screenshots/import_rewritten_damf_v0.3/dolby_atmos_file_details.png)
+
+![Rewritten DAMF v0.3 audio core channel configuration](demo_screenshots/import_rewritten_damf_v0.3/audio_core_channel_config.png)
+
+![Rewritten DAMF v0.3 preprocessing bed configuration](demo_screenshots/import_rewritten_damf_v0.3/preprocessing_bed_config.png)
+
+![Rewritten DAMF v0.3 encoder settings data rate](demo_screenshots/import_rewritten_damf_v0.3/encoder_settings_data_rate.png)
 
 ## Scope
 
