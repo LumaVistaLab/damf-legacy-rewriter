@@ -1,5 +1,7 @@
 # DAMF Legacy Rewriter
 
+Language: English | [简体中文](README_zh-CN.md)
+
 This project rewrites a modern Dolby Atmos Master File triplet into the older flat DAMF profile that has been empirically accepted by Dolby Media Producer Suite (DMPS) v2.0 build `2976134`.
 
 The converter is:
@@ -8,11 +10,29 @@ The converter is:
 
 Supporting documentation is split by purpose:
 
-- `README.md`: usage, scope, and the practical profile summary
+- `README.md`: English usage, scope, and the practical profile summary
+- `README_zh-CN.md`: Simplified Chinese usage, scope, and the practical profile summary
 - `CONVERSION_RULES.md`: authoritative rule record and current research findings
 - `BEHAVIOR_EXAMPLES.md`: CLI output, accepted shapes, and rejected shapes
 
 The demo screenshots are retained only as import-behavior evidence. Generated DAMFs, probe outputs, installers, sample masters, and temporary validation scripts are not part of the final project policy.
+
+## Project Structure
+
+```text
+damf-legacy-rewriter/
+|-- damf_legacy_rewriter.py   Converter CLI and DAMF/audio rewrite logic.
+|-- README.md                 English documentation.
+|-- README_zh-CN.md           Simplified Chinese documentation.
+|-- CONVERSION_RULES.md       Rule record and current research findings.
+|-- BEHAVIOR_EXAMPLES.md      CLI examples plus accepted/rejected shapes.
+|-- LICENSE
+|-- .gitignore                Ignores local work folders, generated outputs, installers, and cache files.
+|-- demo_screenshots/         DMPS v2.0 import-behavior evidence.
+`-- encoder_manuals/          Dolby Media Producer Suite reference PDFs for v2.0 and v2.5.
+```
+
+`codex_work_folder/`, `encoder_installers/`, `encoder_outputs/`, `encoder_projects/`, `example_masters/`, `example_outputs/`, `DAMF Legacy Rewriter.code-workspace`, and `__pycache__/` are intentionally ignored local workspace or generated-output paths. They are useful during research and validation but are not part of the tracked release documentation set.
 
 ## Demo Screenshots
 
