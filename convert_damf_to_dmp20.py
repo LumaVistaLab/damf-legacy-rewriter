@@ -56,7 +56,6 @@ PRESENTATION_OPTIONAL_SOURCE_FIELDS = [
     "fps",
 ]
 METADATA_TOP_LEVEL_VALUES = [
-    ("version", "0.3"),
     ("sampleRate", 48000),
 ]
 METADATA_EVENT_OPTIONAL_SOURCE_FIELDS = [

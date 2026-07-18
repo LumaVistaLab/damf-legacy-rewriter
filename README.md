@@ -155,7 +155,6 @@ Output channel entries are regenerated:
 Top-level fields:
 
 ```yaml
-version: 0.3
 sampleRate: 48000
 ```
 

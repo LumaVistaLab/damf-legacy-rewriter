@@ -6,3 +6,5 @@ example_masters/
 example_outputs/
 
 DAMF Legacy Rewriter.code-workspace
+
+__pycache__

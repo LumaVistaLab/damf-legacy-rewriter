@@ -67,7 +67,6 @@ channels:
 Output `.atmos.metadata`:
 
 ```yaml
-version: 0.3
 sampleRate: 48000
 events: []
 ```
@@ -369,7 +368,6 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 ## Final Profile Reminder
 
 - `.atmos` version is fixed `0.3`.
-- `.atmos.metadata` version is fixed `0.3`.
 - `.atmos` presentation `simplified` is fixed `false`.
 - `.atmos` uses global contiguous `ID`.
 - `.atmos.metadata` uses object-only zero-based `objectID`.

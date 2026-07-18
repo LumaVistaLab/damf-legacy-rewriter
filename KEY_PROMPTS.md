@@ -40,7 +40,6 @@ Discarded `.atmos` fields:
 
 `.atmos.metadata`:
 
-- top-level `version: 0.3`
 - top-level `sampleRate: 48000`
 - only object events retained
 - bed events filtered out
