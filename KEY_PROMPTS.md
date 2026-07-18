@@ -41,7 +41,7 @@ Discarded `.atmos` fields:
 - top-level `sampleRate: 48000`
 - only object events retained
 - bed events filtered out
-- emitted output event IDs use zero-based object-only `objectID`
+- emitted output event IDs use `.atmos`-aligned object `objectID` values, starting at `10`
 - event fields may be omitted
 - source events without `ID` or `objectID` inherit the most recent explicit source event ID before object filtering, but remain ID-less in output
 - object event fields are emitted only when present, except legacy `size3D` handling tied to `size`

@@ -468,7 +468,7 @@ def write_metadata(source: Path, dest: Path, plan: Plan, emit_size3d: bool = Fal
     event_lines: list[str] = []
 
     source_id_to_object_id = {
-        source_id: idx for idx, source_id in enumerate(plan.source_object_ids)
+        source_id: OUTPUT_OBJECT_ID_BASE + idx for idx, source_id in enumerate(plan.source_object_ids)
     }
     current_source_id: int | None = None
     for event in data.get("events", []):

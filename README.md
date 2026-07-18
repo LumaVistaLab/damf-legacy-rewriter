@@ -166,7 +166,7 @@ sampleRate: 48000
 
 Only source object events are retained. Bed events are filtered out.
 
-When an output event ID is emitted, the field is `objectID`. It starts from zero in object namespace only, independent of global `.atmos` channel IDs. Source events that omit `ID` or `objectID` keep that omission in the output.
+When an output event ID is emitted, the field is `objectID`. It uses the same output object ID as the regenerated `.atmos` channel entry, so the first output object is `10`, the second is `11`, and so on. Source events that omit `ID` or `objectID` keep that omission in the output.
 
 Event fields are emitted in this order when applicable:
 

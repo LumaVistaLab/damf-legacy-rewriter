@@ -133,15 +133,15 @@ channels:
     ID: 11
 ```
 
-Output `.atmos.metadata` object IDs start at zero when emitted:
+Output `.atmos.metadata` object IDs match the regenerated `.atmos` object IDs when emitted:
 
 ```yaml
 events:
-  - objectID: 0
+  - objectID: 10
     samplePos: 0
     active: true
     pos: [0.5, 0.5, 0]
-  - objectID: 1
+  - objectID: 11
     samplePos: 0
     active: true
     pos: [0.5, 0.5, 0]
@@ -254,7 +254,7 @@ Output:
 
 ```yaml
 events:
-  - objectID: 0
+  - objectID: 10
     samplePos: 0
     active: true
     pos: [0.5, 0.5, 0]
@@ -280,7 +280,7 @@ Output:
 
 ```yaml
 events:
-  - objectID: 0
+  - objectID: 10
     samplePos: 0
     active: false
     pos: [-2001, 2001, 0]
@@ -307,7 +307,7 @@ Output:
 
 ```yaml
 events:
-  - objectID: 0
+  - objectID: 10
     samplePos: 0
     active: true
     pos: [0.5, 0.5, 0]
@@ -334,7 +334,7 @@ Output:
 
 ```yaml
 events:
-  - objectID: 0
+  - objectID: 10
     samplePos: 100
     pos: [0.1, 0.2, 0]
   - samplePos: 200
@@ -416,7 +416,7 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 - `.atmos` preserves optional presentation fields listed above when present.
 - `.atmos` bed IDs are compact and zero-based in output bed order.
 - `.atmos` object IDs start at `10` and increase contiguously.
-- `.atmos.metadata` uses object-only zero-based `objectID` when an event ID is emitted.
+- `.atmos.metadata` uses the same output object IDs as `.atmos` when an event ID is emitted.
 - Direct 7.1.2 bed is supported.
 - 9.1 is not specially converted.
 - Probe DAMFs are not part of the final project.
