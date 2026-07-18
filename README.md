@@ -58,6 +58,9 @@ The input CAF must be 24-bit little-endian LPCM. The converter rewrites the CAF 
 python convert_damf_to_dmp20.py --source-dir .\input --dest-dir .\output --name movie
 ```
 
+By default, metadata output omits `size3D`. Pass `--emit-size3d` to write `size3D`
+using the same legacy compatibility mapping.
+
 The command reads:
 
 ```text
@@ -170,6 +173,8 @@ size, size3D, decorr, importance, gain, rampLength,
 dialog, music, screenFactor, depthFactor
 ```
 
+`size3D` is included in that position only when `--emit-size3d` is passed.
+
 Rules:
 
 - Event fields may be omitted.
@@ -177,9 +182,10 @@ Rules:
 - Normal event fields are inherited only when the source event contains them.
 - Boolean fields `active`, `snap`, `elevation`, `size3D`, and `decorr` are normalized to `false` or `true`.
 - `size` is inherited if present.
-- If `size` exists and `size3D` exists, inherit normalized `size3D`.
-- If `size` exists and `size3D` is absent, write `size3D: true`.
-- If `size` is absent, do not write `size3D`.
+- `size3D` is normalized/calculated with the same legacy compatibility rules, but is not emitted by default.
+- With `--emit-size3d`, if `size` exists and `size3D` exists, inherit normalized `size3D`.
+- With `--emit-size3d`, if `size` exists and `size3D` is absent, write `size3D: true`.
+- If `size` is absent, do not write `size3D`, even with `--emit-size3d`.
 - `decorr` is inherited only when both `size` and `decorr` exist.
 - `dialog`, `music`, and `importance` are preserved when present.
 - If there are no object events, the output is `events: []`.

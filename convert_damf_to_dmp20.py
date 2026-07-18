@@ -404,7 +404,7 @@ def write_atmos(dest: Path, presentation: dict, plan: Plan) -> None:
     dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_metadata(source: Path, dest: Path, plan: Plan) -> None:
+def write_metadata(source: Path, dest: Path, plan: Plan, emit_size3d: bool = False) -> None:
     data = yaml.safe_load(source.read_text(encoding="utf-8"))
     lines = [f"{key}: {yaml_scalar(value)}" for key, value in METADATA_TOP_LEVEL_VALUES]
     event_lines: list[str] = []
@@ -434,9 +434,11 @@ def write_metadata(source: Path, dest: Path, plan: Plan) -> None:
                 if "size" not in mapped:
                     continue
                 if "size3D" in mapped:
-                    ordered[key] = metadata_bool(mapped[key], key)
+                    size3d = metadata_bool(mapped[key], key)
                 else:
-                    ordered[key] = True
+                    size3d = True
+                if emit_size3d:
+                    ordered[key] = size3d
             elif key == "decorr":
                 if "size" in mapped and "decorr" in mapped:
                     ordered[key] = metadata_bool(mapped[key], key)
@@ -461,6 +463,11 @@ def main() -> None:
     parser.add_argument("--source-dir", type=Path, required=True)
     parser.add_argument("--dest-dir", type=Path, required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument(
+        "--emit-size3d",
+        action="store_true",
+        help="Write size3D metadata fields using the legacy compatibility mapping.",
+    )
     args = parser.parse_args()
 
     source_atmos = args.source_dir / f"{args.name}.atmos"
@@ -474,7 +481,7 @@ def main() -> None:
     presentation, plan = build_plan(source_atmos)
     frames = write_audio(source_audio, dest_audio, plan)
     write_atmos(dest_atmos, presentation, plan)
-    write_metadata(source_metadata, dest_metadata, plan)
+    write_metadata(source_metadata, dest_metadata, plan, emit_size3d=args.emit_size3d)
 
     print(f"bed_channels={len(plan.bed_labels)} {','.join(plan.bed_labels)}")
     print(f"source_objects={len(plan.source_objects)}")

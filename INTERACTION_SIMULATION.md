@@ -10,6 +10,9 @@ Use it to review CLI messages, accepted input shapes, rejected input shapes, and
 python convert_damf_to_dmp20.py --source-dir .\input --dest-dir .\output --name movie
 ```
 
+By default, output metadata omits `size3D`. Add `--emit-size3d` to write the
+legacy `size3D` mapping.
+
 Successful output has this shape:
 
 ```text
@@ -241,7 +244,6 @@ events:
     active: true
     pos: [0.5, 0.5, 0]
     size: 0.2
-    size3D: true
 ```
 
 ### Source Event With Size, Size3D, And Decorr
@@ -268,7 +270,6 @@ events:
     active: false
     pos: [-2001, 2001, 0]
     size: 0.2
-    size3D: false
     decorr: true
 ```
 
