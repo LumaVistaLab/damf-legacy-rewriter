@@ -20,6 +20,8 @@ The accepted target profile is empirical, not an official Dolby DAMF specificati
 - `metadata` and `audio` point to the output filenames
 - `offset` preserved from source
 - `ffoa`, `surroundTrim_7_1`, `surroundTrim_5_1`, `fps` preserved only if present
+- `scBedConfiguration`, `scNumberOfElements`, `roomWidth`, `roomLength`, `roomHeight`, `screenSizeRatio` preserved only if present
+- `dialnorm`/`dialNorm` preserved only if present and emitted as `dialnorm`
 - `creationTool: DAMF Legacy Rewriter for DMPS v2.0 by LumaVista`
 - `creationToolVersion: Only Tested DAMF v0.5.0 & v0.5.1 to v0.3`
 - bed channel names are `BED <label>`
@@ -29,11 +31,6 @@ The accepted target profile is empirical, not an official Dolby DAMF specificati
 
 Discarded `.atmos` fields:
 
-- `scNumberOfElements`
-- `scBedConfiguration`
-- `dialnorm`
-- room dimensions
-- screen size
 - `salt`
 - `audioCipherIV`
 - `metadataCipherIV`
@@ -138,7 +135,7 @@ The converter preserves `offset` and does not time-shift CAF audio.
 - `ffoa` should be preserved only when present; do not synthesize it.
 - `fps` can be present or absent.
 - `surroundTrim_5_1` and `surroundTrim_7_1` are safe to preserve when present.
-- `scNumberOfElements`, `scBedConfiguration`, and `dialnorm` are not preserved in the final profile.
+- `scNumberOfElements`, `scBedConfiguration`, `dialnorm`/`dialNorm`, room dimensions, and screen size are preserved when present in the source presentation.
 - `.atmos` channel entries require `ID`; using `objectID` in `.atmos` can crash DMPS v2.0.
 - Removing object `name` and `ID` from `.atmos` prevents import.
 - DMPS v2.0 import accepts stereo bed input.

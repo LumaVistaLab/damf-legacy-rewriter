@@ -55,6 +55,14 @@ PRESENTATION_OPTIONAL_SOURCE_FIELDS = [
     "surroundTrim_5_1",
     "fps",
 ]
+PRESENTATION_OPTIONAL_PASSTHROUGH_FIELDS = [
+    "scBedConfiguration",
+    "scNumberOfElements",
+    "roomWidth",
+    "roomLength",
+    "roomHeight",
+    "screenSizeRatio",
+]
 METADATA_TOP_LEVEL_VALUES = [
     ("sampleRate", 48000),
 ]
@@ -362,6 +370,19 @@ def require_field(data: dict, field: str, context: str):
     return data[field]
 
 
+def presentation_optional_fields(presentation: dict):
+    for key in PRESENTATION_OPTIONAL_SOURCE_FIELDS:
+        if key in presentation:
+            yield key, presentation[key]
+    for key in PRESENTATION_OPTIONAL_PASSTHROUGH_FIELDS:
+        if key in presentation:
+            yield key, presentation[key]
+    if "dialnorm" in presentation:
+        yield "dialnorm", presentation["dialnorm"]
+    elif "dialNorm" in presentation:
+        yield "dialnorm", presentation["dialNorm"]
+
+
 def emit_event(lines: list[str], event: dict) -> None:
     first = True
     for key, value in event.items():
@@ -388,9 +409,8 @@ def write_atmos(dest: Path, presentation: dict, plan: Plan) -> None:
     for key in PRESENTATION_REQUIRED_OUTPUT_FIELDS:
         lines.append(f"    {key}: {output_values[key]}")
     lines.append(f"    offset: {yaml_scalar(source_values['offset'])}")
-    for key in PRESENTATION_OPTIONAL_SOURCE_FIELDS:
-        if key in presentation:
-            lines.append(f"    {key}: {yaml_scalar(presentation[key])}")
+    for key, value in presentation_optional_fields(presentation):
+        lines.append(f"    {key}: {yaml_scalar(value)}")
     for key, value in PRESENTATION_REQUIRED_FIXED_VALUES:
         if key != "type":
             lines.append(f"    {key}: {yaml_scalar(value)}")

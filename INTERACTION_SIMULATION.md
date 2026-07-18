@@ -27,6 +27,17 @@ wrote=<dest>\movie.atmos.metadata
 
 The exact `frames` value depends on the input CAF.
 
+## Optional Presentation Passthrough
+
+When present in the source presentation, the converter preserves:
+
+```text
+scBedConfiguration, scNumberOfElements, dialnorm/dialNorm,
+roomWidth, roomLength, roomHeight, screenSizeRatio
+```
+
+`dialnorm` and `dialNorm` are both emitted as `dialnorm`.
+
 ## Valid Cases
 
 ### 2.0 Bed, No Objects
@@ -399,6 +410,7 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 
 - `.atmos` version is fixed `0.3`.
 - `.atmos` presentation `simplified` is fixed `false`.
+- `.atmos` preserves optional presentation fields listed above when present.
 - `.atmos` uses global contiguous `ID`.
 - `.atmos.metadata` uses object-only zero-based `objectID`.
 - Direct 7.1.2 bed is supported.

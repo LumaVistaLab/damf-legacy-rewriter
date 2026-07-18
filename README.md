@@ -141,10 +141,12 @@ Presentation fields:
 - `audio`: output audio filename
 - `offset`: preserved from input
 - `ffoa`, `surroundTrim_7_1`, `surroundTrim_5_1`, `fps`: preserved only if present in input
+- `scBedConfiguration`, `scNumberOfElements`, `roomWidth`, `roomLength`, `roomHeight`, `screenSizeRatio`: preserved only if present in input
+- `dialnorm`/`dialNorm`: preserved only if present in input and emitted as `dialnorm`
 - `creationTool`: fixed `DAMF Legacy Rewriter for DMPS v2.0 by LumaVista`
 - `creationToolVersion`: fixed `Only Tested DAMF v0.5.0 & v0.5.1 to v0.3`
 
-Discarded presentation fields include `scNumberOfElements`, `scBedConfiguration`, `dialnorm`, room dimensions, screen size, salt, `audioCipherIV`, and `metadataCipherIV`.
+Discarded presentation fields include `salt`, `audioCipherIV`, and `metadataCipherIV`.
 
 Output channel entries are regenerated:
 
