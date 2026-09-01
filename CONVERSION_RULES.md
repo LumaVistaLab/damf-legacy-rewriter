@@ -45,27 +45,24 @@ Unsupported bed label sets are rejected directly. There is no 9.1-specific conve
 
 ## Source ID Model
 
-Modern DAMF authoring/conversion tools reserve 10 source IDs per input bed. The converter enforces this model because it matched the working DMPS v2.0 import and encode results.
+Every input bed instance must use a contiguous range of source IDs. The range may start at any unused ID. Input beds do not reserve ten IDs, and a narrower layout does not leave canonical 7.1.2 holes in its input range.
 
-Canonical 7.1.2 slot positions inside each 10-ID block:
+For example, both 5.1 layouts use six contiguous input IDs:
 
 ```text
-L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7, Lts=8, Rts=9
+5.1 side: L=0, R=1, C=2, LFE=3, Lss=4, Rss=5
+5.1 back: L=0, R=1, C=2, LFE=3, Lrs=4, Rrs=5
 ```
 
-For bed index `N`, add `10 * N`.
+The labels determine whether the final two 5.1 channels feed side or rear output slots. Canonical 7.1.2 positions apply only to regenerated output bed IDs.
 
-Examples:
+Input bed and object ID ranges:
 
-- first 2.0 bed: `L=0`, `R=1`
-- first 5.1 side bed: `L=0`, `R=1`, `C=2`, `LFE=3`, `Lss=4`, `Rss=5`
-- first 5.1 back bed: `L=0`, `R=1`, `C=2`, `LFE=3`, `Lrs=6`, `Rrs=7`
-- first 7.1.2 bed: IDs `0..9`
-- second bed begins at ID `10`
+- may be adjacent or separated by undeclared gaps
+- may be interleaved, such as a bed, then objects, then another bed
+- must be globally unique across all bed channels and objects
 
-Source object IDs must be at least `10 * bed_count`. Source object IDs may be sparse. All source channel and object IDs must be unique.
-
-CAF audio does not contain empty tracks for unused bed ID slots. It is packed in actual source bed channel order followed by source object list order.
+Source CAF channels correspond to all declared bed and object IDs in ascending numeric order. Undeclared ID gaps do not consume CAF channels.
 
 ## Output `.atmos`
 
@@ -153,6 +150,8 @@ Output CAF channel order is:
 ```text
 output bed channels, then output objects
 ```
+
+Source CAF indices are first resolved by sorting all declared input bed and object IDs. The resolved channels are then merged and reordered into the output layout.
 
 Multiple beds contributing the same output label are summed directly. The converter does not apply gain management or downmix rules.
 

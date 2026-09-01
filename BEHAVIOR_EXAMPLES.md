@@ -95,7 +95,7 @@ events: []
 
 ### 2.0 Bed With Objects
 
-Source object IDs start after the reserved 10-ID bed block, even though the bed has only two audio channels.
+Source objects may connect directly to the bed ID range or be separated by an undeclared gap.
 
 ```yaml
 bedInstances:
@@ -105,7 +105,7 @@ bedInstances:
       - channel: R
         ID: 1
 objects:
-  - ID: 10
+  - ID: 2
   - ID: 12
 ```
 
@@ -154,7 +154,7 @@ events:
 
 ### 5.1 Side Bed
 
-Canonical source IDs:
+Contiguous source IDs:
 
 ```text
 L=0, R=1, C=2, LFE=3, Lss=4, Rss=5
@@ -170,10 +170,10 @@ L=0, R=1, C=2, LFE=3, Lss=4, Rss=5
 
 ### 5.1 Back Bed
 
-Canonical source IDs:
+Contiguous source IDs:
 
 ```text
-L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
+L=0, R=1, C=2, LFE=3, Lrs=4, Rrs=5
 ```
 
 Aliases `Lb/Rb` are accepted and normalize to `Lrs/Rrs`.
@@ -184,11 +184,11 @@ Expected output labels and bed IDs:
 L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
 ```
 
-Important: `Lrs/Rrs` use reserved 7.1.2 slots `6/7`. Packed `4/5` IDs are rejected even though the CAF audio has only six bed channels.
+The `Lrs/Rrs` labels route the final two input channels to output bed IDs `6/7`; no input ID gap is used to distinguish the back layout.
 
 ### 7.1 Bed
 
-Canonical source IDs and output bed IDs:
+Contiguous source IDs and output bed IDs:
 
 ```text
 L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7
@@ -202,7 +202,7 @@ bed_channels=8 L,R,C,LFE,Lss,Rss,Lrs,Rrs
 
 ### 7.1.2 Bed
 
-Canonical source IDs and output bed IDs:
+Contiguous source IDs and output bed IDs:
 
 ```text
 L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7, Lts=8, Rts=9
@@ -220,14 +220,15 @@ The converter keeps `Lts/Rts` as bed channels. It does not convert them into sta
 
 ### Multiple Beds
 
-Each input bed reserves a 10-ID block. The second bed starts at ID 10, the third at ID 20, and so on.
+Each bed uses its own contiguous ID range. Objects may sit between bed ranges, and undeclared gaps are allowed between any ranges.
 
 Most explanatory example: one 5.1 side bed plus one 5.1 back bed.
 
 ```text
-bed 0: L=0,  R=1,  C=2,  LFE=3,  Lss=4,  Rss=5
-bed 1: L=10, R=11, C=12, LFE=13, Lrs=16, Rrs=17
-first object ID: 20
+bed 0:    L=0,  R=1,  C=2,  LFE=3,  Lss=4, Rss=5
+objects:  ID=6, ID=7
+bed 1:    L=10, R=11, C=12, LFE=13, Lrs=14, Rrs=15
+object:   ID=20
 ```
 
 The selected output bed layout is 7.1 because the combined beds cover both side and rear surrounds:
@@ -237,14 +238,14 @@ output bed labels: L,R,C,LFE,Lss,Rss,Lrs,Rrs
 output bed IDs:    0,1,2,3,4,5,6,7
 ```
 
-CAF audio remains packed:
+Source CAF channels follow all declared IDs in ascending order, skipping IDs 8, 9, and 16 through 19:
 
 ```text
-bed 0 six channels, bed 1 six channels, objects
-L,R,C,LFE,Lss,Rss,L,R,C,LFE,Lrs,Rrs,OBJ...
+bed 0 six channels, objects 6/7, bed 1 six channels, object 20
+L,R,C,LFE,Lss,Rss,OBJ,OBJ,L,R,C,LFE,Lrs,Rrs,OBJ
 ```
 
-There are no silent placeholder tracks for unused reserved slots.
+There are no silent placeholder tracks for undeclared IDs.
 
 The shared labels `L/R/C/LFE` are summed from both beds. `Lss/Rss` come only from bed 0. `Lrs/Rrs` come only from bed 1. If any summed channel exceeds 24-bit range, it is clipped.
 
@@ -374,28 +375,18 @@ Expected failure:
 ValueError: duplicate channel 'Lss' in bedInstances[0]
 ```
 
-### Packed 5.1 Back IDs
+### Noncontiguous Bed IDs
 
 Invalid source:
 
 ```text
-L=0, R=1, C=2, LFE=3, Lrs=4, Rrs=5
+L=0, R=1, C=2, LFE=3, Lrs=6, Rrs=7
 ```
 
 Expected failure:
 
 ```text
-ValueError: bedInstances[0] channel Lrs ID 4 should be 6; input bed IDs must use canonical 7.1.2 slot positions inside reserved block 0..9; source objects still start after reserved block 0..9
-```
-
-### Object ID Inside Reserved Bed Block
-
-One input bed reserves IDs `0..9`; object ID `8` is invalid.
-
-Expected failure:
-
-```text
-ValueError: source object ID 8 is below first object ID 10; 1 input bed(s) reserve 10 ID slots
+ValueError: bedInstances[0] channel IDs must be contiguous; got [0, 1, 2, 3, 6, 7], expected 0..5
 ```
 
 ### Duplicate Source ID
@@ -420,6 +411,8 @@ ValueError: source audio indices outside CAF channel count: [<indices>]
 - `.atmos` presentation `simplified` is fixed `false`.
 - Missing presentation `offset` writes `offset: 0`.
 - Supported bed inputs are exactly 7.1.2, 7.1, 5.1 side, 5.1 back, 2.0, and any combination of those layouts.
+- Every input bed uses contiguous IDs; bed and object ranges may touch, have gaps, or interleave.
+- Source CAF channels map to all declared input IDs in ascending order, skipping undeclared gaps.
 - Output bed IDs use canonical 7.1.2 slot IDs.
 - `.atmos` object IDs start at `10` and increase contiguously.
 - `.atmos.metadata` keeps object-event inheritance shape for `objectID` and `samplePos`.

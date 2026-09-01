@@ -139,24 +139,13 @@ Any other bed label set is rejected. There is no 9.1 special handling and no sta
 
 ## ID Model
 
-Each input bed reserves 10 source ID slots. Channels inside each bed block must use canonical 7.1.2 slot positions:
+The channel IDs inside each input bed must form one contiguous numeric range. A bed may start at any unused ID, and no unused slots are reserved for layouts narrower than 7.1.2.
 
-```text
-L=0, R=1, C=2, LFE=3, Lss=4, Rss=5, Lrs=6, Rrs=7, Lts=8, Rts=9
-```
+For example, both a 5.1 side bed and a 5.1 back bed use six contiguous input IDs. The channel labels, rather than gaps in the IDs, decide whether IDs 4 and 5 feed the side or rear output channels.
 
-For bed index `N`, add `10 * N`.
+Input bed and object IDs may touch, may have gaps between them, and may be interleaved across the full source ID range. All source channel and object IDs must still be unique. Source CAF channels are matched to the declared bed/object IDs in ascending ID order, with undeclared gaps omitted.
 
-Examples:
-
-- First 2.0 bed: `0,1`
-- First 5.1 side bed: `0,1,2,3,4,5`
-- First 5.1 back bed: `0,1,2,3,6,7`
-- Second 5.1 back bed: `10,11,12,13,16,17`
-
-Output bed channel IDs also use the same canonical 7.1.2 slot IDs. They are not compacted.
-
-Source object IDs must be greater than or equal to `10 * bed_count`. Source object IDs may be sparse, but all source channel and object IDs must be unique. Output object channel IDs start at `10` and increase contiguously.
+Output IDs remain independent of this input mapping: output bed channels use canonical 7.1.2 slot IDs and are not compacted, while output object channel IDs start at `10` and increase contiguously.
 
 ## Output Profile
 
@@ -200,6 +189,8 @@ Output CAF channel order is:
 ```text
 output bed channels, then output objects
 ```
+
+Input CAF channel order is derived from all declared input bed and object IDs in ascending order. This supports objects between bed ID ranges as well as gaps between a bed and its neighboring objects.
 
 Multiple input beds contributing the same output label are summed directly. The converter does not apply gain management or downmix rules. If summed samples exceed the 24-bit integer range, they are clipped to the valid range instead of failing. This intentionally leaves a production-quality risk for overloaded sources.
 

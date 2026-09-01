@@ -18,7 +18,6 @@ TRADITIONAL_5_1_SIDE = ["L", "R", "C", "LFE", "Lss", "Rss"]
 TRADITIONAL_5_1_BACK = ["L", "R", "C", "LFE", "Lrs", "Rrs"]
 STEREO = ["L", "R"]
 BED_LAYOUT_7_1_2 = [*TRADITIONAL_7_1, "Lts", "Rts"]
-INPUT_BED_SLOT_COUNT = 10
 OUTPUT_OBJECT_ID_BASE = 10
 CANONICAL_BED_SLOT_BY_LABEL = {label: index for index, label in enumerate(BED_LAYOUT_7_1_2)}
 SUPPORTED_BED_LAYOUTS = {
@@ -206,69 +205,69 @@ def build_plan(source_atmos: Path) -> tuple[dict, Plan]:
     bed_instances = presentation.get("bedInstances", [])
     seen_source_ids: set[int] = set()
 
-    def reserve_source_id(source_id: int) -> None:
+    def register_source_id(source_id: int) -> None:
         if source_id in seen_source_ids:
             raise ValueError(f"duplicate source channel/object ID: {source_id}")
         seen_source_ids.add(source_id)
 
-    def validate_bed_id(bed_index: int, label: str, source_id: int) -> None:
-        expected_id = bed_index * INPUT_BED_SLOT_COUNT + CANONICAL_BED_SLOT_BY_LABEL[label]
-        if source_id != expected_id:
-            block_start = bed_index * INPUT_BED_SLOT_COUNT
-            block_end = block_start + INPUT_BED_SLOT_COUNT - 1
+    def validate_contiguous_bed_ids(bed_index: int, source_ids: list[int]) -> None:
+        ordered_ids = sorted(source_ids)
+        expected_ids = list(range(ordered_ids[0], ordered_ids[0] + len(ordered_ids)))
+        if ordered_ids != expected_ids:
             raise ValueError(
-                f"bedInstances[{bed_index}] channel {label} ID {source_id} should be {expected_id}; "
-                f"input bed IDs must use canonical 7.1.2 slot positions inside reserved block {block_start}..{block_end}; "
-                f"source objects still start after reserved block {block_start}..{block_end}"
+                f"bedInstances[{bed_index}] channel IDs must be contiguous; "
+                f"got {ordered_ids}, expected {expected_ids[0]}..{expected_ids[-1]}"
             )
-        reserve_source_id(source_id)
 
-    bed_sources_by_label: dict[str, list[int]] = {}
-    packed_audio_index = 0
+    bed_source_ids_by_label: dict[str, list[int]] = {}
     for index, bed_instance in enumerate(bed_instances):
         classification = classify_bed_instance(bed_instance, index)
+        bed_source_ids = []
         for label, source_id in classification.channels:
-            validate_bed_id(index, label, source_id)
-            bed_sources_by_label.setdefault(label, []).append(packed_audio_index)
-            packed_audio_index += 1
+            register_source_id(source_id)
+            bed_source_ids.append(source_id)
+            bed_source_ids_by_label.setdefault(label, []).append(source_id)
+        validate_contiguous_bed_ids(index, bed_source_ids)
 
-    if set(BED_LAYOUT_7_1_2).issubset(bed_sources_by_label):
+    if set(BED_LAYOUT_7_1_2).issubset(bed_source_ids_by_label):
         bed_labels = BED_LAYOUT_7_1_2
-    elif set(TRADITIONAL_7_1).issubset(bed_sources_by_label):
+    elif set(TRADITIONAL_7_1).issubset(bed_source_ids_by_label):
         bed_labels = TRADITIONAL_7_1
-    elif set(TRADITIONAL_5_1_SIDE).issubset(bed_sources_by_label):
+    elif set(TRADITIONAL_5_1_SIDE).issubset(bed_source_ids_by_label):
         bed_labels = TRADITIONAL_5_1_SIDE
-    elif set(TRADITIONAL_5_1_BACK).issubset(bed_sources_by_label):
+    elif set(TRADITIONAL_5_1_BACK).issubset(bed_source_ids_by_label):
         bed_labels = TRADITIONAL_5_1_BACK
     else:
         bed_labels = STEREO
-    missing = [label for label in bed_labels if label not in bed_sources_by_label]
+    missing = [label for label in bed_labels if label not in bed_source_ids_by_label]
     if missing:
         raise ValueError(f"missing required output bed channels: {missing}")
-    if not bed_sources_by_label:
+    if not bed_source_ids_by_label:
         raise ValueError("no compatible 2.0/5.1/7.1 bed channels found")
 
     source_objects = presentation.get("objects", [])
-    first_source_object_id = len(bed_instances) * INPUT_BED_SLOT_COUNT
-    object_audio_base = packed_audio_index
     source_object_ids = []
-    source_object_audio_indices = []
-    for object_index, obj in enumerate(source_objects):
+    for obj in source_objects:
         source_id = int(obj["ID"])
-        if source_id < first_source_object_id:
-            raise ValueError(
-                f"source object ID {source_id} is below first object ID {first_source_object_id}; "
-                f"{len(bed_instances)} input bed(s) reserve {first_source_object_id} ID slots"
-            )
-        reserve_source_id(source_id)
+        register_source_id(source_id)
         source_object_ids.append(source_id)
-        source_object_audio_indices.append(object_audio_base + object_index)
+
+    # Source CAF channels are packed by declared ID; undeclared ID gaps do not
+    # create silent placeholder channels.
+    source_id_to_audio_index = {
+        source_id: audio_index for audio_index, source_id in enumerate(sorted(seen_source_ids))
+    }
     return presentation, Plan(
         bed_labels=bed_labels,
-        bed_sources=[bed_sources_by_label[label] for label in bed_labels],
+        bed_sources=[
+            [source_id_to_audio_index[source_id] for source_id in bed_source_ids_by_label[label]]
+            for label in bed_labels
+        ],
         source_objects=source_objects,
         source_object_ids=source_object_ids,
-        source_object_audio_indices=source_object_audio_indices,
+        source_object_audio_indices=[
+            source_id_to_audio_index[source_id] for source_id in source_object_ids
+        ],
     )
 
 
